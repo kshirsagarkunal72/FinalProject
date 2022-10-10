@@ -1,0 +1,115 @@
+version: '3'
+
+services:
+  
+
+  mysql:
+    image: 'mysql'
+    container_name: mysql
+    ports:
+      - '3007:3006'
+    environment:
+     - MYSQL_ROOT_PASSWORD=wishit
+     - MYSQL_USER=root
+     - MYSQL_PASSWORD=wishit
+     - MYSQL_DATABASE=wishitdb
+    volumes:
+      - P:\PROJECT\DOCKER\MYSQL:/var/lib/mysql    
+    
+
+  
+
+
+  serviceregistry:
+    image: 'prashantdarade1697/serviceregistry:1'
+    container_name: serviceregistry
+    ports:
+      - '8761:8761'
+
+
+
+  zipkin:
+    image: 'openzipkin/zipkin'
+    container_name: zipkin
+    environment:
+      - STORAGE_TYPE=mem
+    ports:
+      - '9411:9411'
+    depends_on:
+      - mysql
+      - serviceregistry
+
+  cloudapigateway:
+    image: 'prashantdarade1697/cloudapigateway:1'
+    container_name: cloudapigateway
+    environment:
+        - EUREKA_SERVER=http://serviceregistry:8761/eureka
+        - ZIPKIN_SERVER=http://zipkin:9411/     
+    ports:
+      - '8084:8084'     
+    depends_on:
+      - zipkin
+       
+
+
+
+  customerservice:
+    image: 'prashantdarade1697/customerservice:1'
+    container_name: customerservice
+    environment:
+        - EUREKA_SERVER=http://serviceregistry:8761/eureka
+        - ZIPKIN_SERVER=http://zipkin:9411/
+        - MYSQL_HOST=mysql
+        - MYSQL_USER=root
+        - MYSQL_PASSWORD=wishit
+        - MYSQL_PORT=3306
+        - DATABASE=wishitdb
+    ports:
+      - "8085:8085"
+    depends_on:
+      - cloudapigateway
+
+
+
+  supplierservice:
+    image: 'prashantdarade1697/supplierservice:1'
+    container_name: supplierservice
+    environment:
+        - EUREKA_SERVER=http://serviceregistry:8761/eureka
+        - ZIPKIN_SERVER=http://zipkin:9411/
+        - MYSQL_HOST=mysql
+        - MYSQL_USER=root
+        - MYSQL_PASSWORD=wishit
+        - MYSQL_PORT=3306
+        - DATABASE=wishitdb
+    ports:
+      - "8086:8086"
+    depends_on:
+      - cloudapigateway
+   
+
+
+
+  securityservice:
+    image: 'prashantdarade1697/securityservice:1'
+    container_name: securityservice
+    environment:
+        - EUREKA_SERVER=http://serviceregistry:8761/eureka
+        - ZIPKIN_SERVER=http://zipkin:9411/
+        - MYSQL_HOST=mysql
+        - MYSQL_USER=root
+        - MYSQL_PASSWORD=wishit
+        - MYSQL_PORT=3306
+        - DATABASE=wishitdb
+    ports:
+      - '8087:8087'
+    depends_on:
+      - cloudapigateway
+  
+  react:
+    image: 'prashantdarade1697/react:1'
+    container_name: react
+    ports:
+      - '3000:3000'
+    depends_on:
+      - cloudapigateway
